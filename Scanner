@@ -1,0 +1,55 @@
+local Scanner = {}
+
+function Scanner.scan(mode, resultsFrame, createResultCallback)
+    local itemCount = 0
+    local foundModels = {}
+    
+    for _, child in pairs(resultsFrame:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+    
+    if mode == "Pollinated" then
+        local targetColor = "0 1 0.584314 0 0 1 1 0.584314 0 0"
+        for _, descendant in pairs(workspace:GetDescendants()) do
+            if descendant:IsA("ParticleEmitter") then
+                local colorString = tostring(descendant.Color)
+                if colorString:find(targetColor) then
+                    local parentModel = descendant:FindFirstAncestorOfClass("Model")
+                    if parentModel and not foundModels[parentModel] then
+                        foundModels[parentModel] = true
+                        itemCount = itemCount + 1
+                        createResultCallback(parentModel, itemCount)
+                    end
+                end
+            end
+        end
+    else
+        for _, descendant in pairs(workspace:GetDescendants()) do
+            if descendant:IsA("StringValue") and descendant.Value == mode then
+                local parentModel = descendant:FindFirstAncestorOfClass("Model")
+                if parentModel and not foundModels[parentModel] then
+                    foundModels[parentModel] = true
+                    itemCount = itemCount + 1
+                    createResultCallback(parentModel, itemCount)
+                end
+            end
+        end
+    end
+    
+    resultsFrame.CanvasSize = UDim2.new(0, 0, 0, itemCount * 65)
+    
+    if itemCount == 0 then
+        local noResults = Instance.new("TextLabel")
+        noResults.Size = UDim2.new(1, 0, 0, 50)
+        noResults.BackgroundTransparency = 1
+        noResults.Text = "No " .. mode .. " items found"
+        noResults.TextColor3 = Color3.fromRGB(150, 150, 150)
+        noResults.TextSize = 16
+        noResults.Font = Enum.Font.Gotham
+        noResults.Parent = resultsFrame
+    end
+end
+
+return Scanner
