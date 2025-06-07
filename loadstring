@@ -1,0 +1,249 @@
+local Scanner = loadstring(game:HttpGet("https://raw.githubusercontent.com/sigmarizzler11aa/growaniga/refs/heads/main/Scanner"))()
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "StringValueScanner"
+screenGui.Parent = playerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 50)
+title.BackgroundTransparency = 1
+title.Text = "Fruit Scanner"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 20
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+local goldToggle = Instance.new("TextButton")
+goldToggle.Size = UDim2.new(0.31, 0, 0, 40)
+goldToggle.Position = UDim2.new(0.02, 0, 0, 60)
+goldToggle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+goldToggle.Text = "Gold"
+goldToggle.TextColor3 = Color3.fromRGB(0, 0, 0)
+goldToggle.TextSize = 16
+goldToggle.Font = Enum.Font.GothamBold
+goldToggle.Parent = mainFrame
+
+local rainbowToggle = Instance.new("TextButton")
+rainbowToggle.Size = UDim2.new(0.31, 0, 0, 40)
+rainbowToggle.Position = UDim2.new(0.345, 0, 0, 60)
+rainbowToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+rainbowToggle.Text = "Rainbow"
+rainbowToggle.TextColor3 = Color3.fromRGB(255, 100, 255)
+rainbowToggle.TextSize = 16
+rainbowToggle.Font = Enum.Font.GothamBold
+rainbowToggle.Parent = mainFrame
+
+local pollinatedToggle = Instance.new("TextButton")
+pollinatedToggle.Size = UDim2.new(0.31, 0, 0, 40)
+pollinatedToggle.Position = UDim2.new(0.67, 0, 0, 60)
+pollinatedToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+pollinatedToggle.Text = "Pollinated"
+pollinatedToggle.TextColor3 = Color3.fromRGB(0, 255, 149)
+pollinatedToggle.TextSize = 16
+pollinatedToggle.Font = Enum.Font.GothamBold
+pollinatedToggle.Parent = mainFrame
+
+for _, btn in pairs({goldToggle, rainbowToggle, pollinatedToggle}) do
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = btn
+end
+
+local resultsFrame = Instance.new("ScrollingFrame")
+resultsFrame.Size = UDim2.new(1, -20, 1, -120)
+resultsFrame.Position = UDim2.new(0, 10, 0, 110)
+resultsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+resultsFrame.BorderSizePixel = 0
+resultsFrame.ScrollBarThickness = 8
+resultsFrame.Parent = mainFrame
+
+local resultsCorner = Instance.new("UICorner")
+resultsCorner.CornerRadius = UDim.new(0, 8)
+resultsCorner.Parent = resultsFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 5)
+listLayout.Parent = resultsFrame
+
+local currentMode = "Gold"
+local highlights = {}
+
+local function clearHighlights()
+    for _, highlight in pairs(highlights) do
+        if highlight and highlight.Parent then
+            highlight:Destroy()
+        end
+    end
+    highlights = {}
+end
+
+local function createResultItem(parentModel, itemCount)
+    local resultItem = Instance.new("Frame")
+    resultItem.Size = UDim2.new(1, -10, 0, 60)
+    resultItem.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    resultItem.BorderSizePixel = 0
+    resultItem.Parent = resultsFrame
+    
+    local itemCorner = Instance.new("UICorner")
+    itemCorner.CornerRadius = UDim.new(0, 6)
+    itemCorner.Parent = resultItem
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0.5, -10, 1, 0)
+    nameLabel.Position = UDim2.new(0, 10, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    local weight = parentModel:FindFirstChild("Weight")
+    local weightText = weight and weight:IsA("NumberValue") and string.format(" [%.1f KG]", weight.Value) or ""
+    nameLabel.Text = parentModel.Name .. weightText
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 14
+    nameLabel.Font = Enum.Font.Gotham
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = resultItem
+    
+    local highlightBtn = Instance.new("TextButton")
+    highlightBtn.Size = UDim2.new(0.2, 0, 0, 35)
+    highlightBtn.Position = UDim2.new(0.5, 5, 0.5, -17.5)
+    highlightBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    highlightBtn.Text = "Highlight"
+    highlightBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    highlightBtn.TextSize = 12
+    highlightBtn.Font = Enum.Font.Gotham
+    highlightBtn.Parent = resultItem
+    
+    local teleportBtn = Instance.new("TextButton")
+    teleportBtn.Size = UDim2.new(0.25, 0, 0, 35)
+    teleportBtn.Position = UDim2.new(0.72, 5, 0.5, -17.5)
+    teleportBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    teleportBtn.Text = "Teleport"
+    teleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    teleportBtn.TextSize = 12
+    teleportBtn.Font = Enum.Font.Gotham
+    teleportBtn.Parent = resultItem
+    
+    for _, btn in pairs({highlightBtn, teleportBtn}) do
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 4)
+        btnCorner.Parent = btn
+    end
+    
+    local isHighlighted = false
+    local currentHighlight = nil
+    
+    highlightBtn.MouseButton1Click:Connect(function()
+        if isHighlighted then
+            if currentHighlight then currentHighlight:Destroy() end
+            highlightBtn.Text = "Highlight"
+            highlightBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            isHighlighted = false
+        else
+            local highlight = Instance.new("Highlight")
+            highlight.FillColor = currentMode == "Gold" and Color3.fromRGB(255, 215, 0) or 
+                                (currentMode == "Rainbow" and Color3.fromRGB(255, 0, 255) or Color3.fromRGB(0, 255, 149))
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.5
+            highlight.Parent = parentModel
+            table.insert(highlights, highlight)
+            currentHighlight = highlight
+            highlightBtn.Text = "Remove"
+            highlightBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 40)
+            isHighlighted = true
+        end
+    end)
+    
+    teleportBtn.MouseButton1Click:Connect(function()
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = CFrame.new(parentModel:GetModelCFrame().Position + Vector3.new(0, 5, 0))
+        end
+    end)
+end
+
+local function updateToggleAppearance()
+    goldToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    goldToggle.TextColor3 = Color3.fromRGB(255, 215, 0)
+    rainbowToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    rainbowToggle.TextColor3 = Color3.fromRGB(255, 100, 255)
+    pollinatedToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    pollinatedToggle.TextColor3 = Color3.fromRGB(0, 255, 149)
+    
+    if currentMode == "Gold" then
+        goldToggle.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+        goldToggle.TextColor3 = Color3.fromRGB(0, 0, 0)
+    elseif currentMode == "Rainbow" then
+        rainbowToggle.BackgroundColor3 = Color3.fromRGB(255, 100, 255)
+        rainbowToggle.TextColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        pollinatedToggle.BackgroundColor3 = Color3.fromRGB(0, 255, 149)
+        pollinatedToggle.TextColor3 = Color3.fromRGB(0, 0, 0)
+    end
+end
+
+local function scanForStringValues()
+    clearHighlights()
+    Scanner.scan(currentMode, resultsFrame, createResultItem)
+end
+
+goldToggle.MouseButton1Click:Connect(function()
+    if currentMode ~= "Gold" then
+        currentMode = "Gold"
+        updateToggleAppearance()
+        scanForStringValues()
+    end
+end)
+
+rainbowToggle.MouseButton1Click:Connect(function()
+    if currentMode ~= "Rainbow" then
+        currentMode = "Rainbow"
+        updateToggleAppearance()
+        scanForStringValues()
+    end
+end)
+
+pollinatedToggle.MouseButton1Click:Connect(function()
+    if currentMode ~= "Pollinated" then
+        currentMode = "Pollinated"
+        updateToggleAppearance()
+        scanForStringValues()
+    end
+end)
+
+local dragging = false
+local dragStart, startPos
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+mainFrame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+scanForStringValues()
