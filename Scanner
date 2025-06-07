@@ -1,54 +1,80 @@
 local Scanner = {}
 
-function Scanner.scan(mode, resultsFrame, createResultCallback)
-    local itemCount = 0
-    local foundModels = {}
-    
+function Scanner.scan(mode, resultsFrame, createResultItem)
+    -- Clear existing results
     for _, child in pairs(resultsFrame:GetChildren()) do
-        if child:IsA("Frame") or child:IsA("TextLabel") then
+        if child:IsA("Frame") then
             child:Destroy()
         end
     end
     
-    if mode == "Pollinated" then
-        local targetColor = "0 1 0.584314 0 0 1 1 0.584314 0 0"
-        for _, descendant in pairs(workspace:GetDescendants()) do
-            if descendant:IsA("ParticleEmitter") then
-                local colorString = tostring(descendant.Color)
-                if colorString:find(targetColor) then
-                    local parentModel = descendant:FindFirstAncestorOfClass("Model")
-                    if parentModel and not foundModels[parentModel] then
-                        foundModels[parentModel] = true
-                        itemCount = itemCount + 1
-                        createResultCallback(parentModel, itemCount)
-                    end
-                end
-            end
+    local workspace = game:GetService("Workspace")
+    local foundItems = {}
+    
+    -- Function to check if a model matches the search criteria
+    local function checkModel(model)
+        if not model:IsA("Model") then return false end
+        
+        -- Check for StringValue with matching name
+        local stringValue = model:FindFirstChild("StringValue")
+        if not stringValue then return false end
+        
+        if mode == "Gold" and stringValue.Value == "Gold" then
+            return true
+        elseif mode == "Rainbow" and stringValue.Value == "Rainbow" then
+            return true
+        elseif mode == "Pollinated" and stringValue.Value == "Pollinated" then
+            return true
         end
-    else
-        for _, descendant in pairs(workspace:GetDescendants()) do
-            if descendant:IsA("StringValue") and descendant.Value == mode then
-                local parentModel = descendant:FindFirstAncestorOfClass("Model")
-                if parentModel and not foundModels[parentModel] then
-                    foundModels[parentModel] = true
-                    itemCount = itemCount + 1
-                    createResultCallback(parentModel, itemCount)
+        
+        return false
+    end
+    
+    -- Function to check if a model matches advanced search criteria
+    local function checkAdvancedSearch(model, searchName, minWeight)
+        if not model:IsA("Model") then return false end
+        if model.Name ~= searchName then return false end
+        
+        local weightValue = model:FindFirstChild("Weight")
+        if not weightValue or not weightValue:IsA("NumberValue") then return false end
+        
+        return weightValue.Value >= minWeight
+    end
+    
+    -- Scan workspace for items
+    local function scanWorkspace(parent)
+        for _, item in pairs(parent:GetChildren()) do
+            if item:IsA("Model") then
+                if checkModel(item) then
+                    table.insert(foundItems, item)
                 end
             end
+            scanWorkspace(item)
         end
     end
     
-    resultsFrame.CanvasSize = UDim2.new(0, 0, 0, itemCount * 65)
+    -- Scan workspace for advanced search
+    local function scanWorkspaceAdvanced(parent, searchName, minWeight)
+        for _, item in pairs(parent:GetChildren()) do
+            if item:IsA("Model") then
+                if checkAdvancedSearch(item, searchName, minWeight) then
+                    table.insert(foundItems, item)
+                end
+            end
+            scanWorkspaceAdvanced(item, searchName, minWeight)
+        end
+    end
     
-    if itemCount == 0 then
-        local noResults = Instance.new("TextLabel")
-        noResults.Size = UDim2.new(1, 0, 0, 50)
-        noResults.BackgroundTransparency = 1
-        noResults.Text = "No " .. mode .. " items found"
-        noResults.TextColor3 = Color3.fromRGB(150, 150, 150)
-        noResults.TextSize = 16
-        noResults.Font = Enum.Font.Gotham
-        noResults.Parent = resultsFrame
+    -- Perform the appropriate scan based on mode
+    if type(mode) == "table" and mode.advanced then
+        scanWorkspaceAdvanced(workspace, mode.searchName, mode.minWeight)
+    else
+        scanWorkspace(workspace)
+    end
+    
+    -- Create result items
+    for i, item in ipairs(foundItems) do
+        createResultItem(item, i)
     end
 end
 
