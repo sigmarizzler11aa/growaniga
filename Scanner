@@ -30,17 +30,6 @@ function Scanner.scan(mode, resultsFrame, createResultItem)
         return false
     end
     
-    -- Function to check if a model matches advanced search criteria
-    local function checkAdvancedSearch(model, searchName, minWeight)
-        if not model:IsA("Model") then return false end
-        if model.Name ~= searchName then return false end
-        
-        local weightValue = model:FindFirstChild("Weight")
-        if not weightValue or not weightValue:IsA("NumberValue") then return false end
-        
-        return weightValue.Value >= minWeight
-    end
-    
     -- Scan workspace for items
     local function scanWorkspace(parent)
         for _, item in pairs(parent:GetChildren()) do
@@ -53,24 +42,51 @@ function Scanner.scan(mode, resultsFrame, createResultItem)
         end
     end
     
-    -- Scan workspace for advanced search
-    local function scanWorkspaceAdvanced(parent, searchName, minWeight)
-        for _, item in pairs(parent:GetChildren()) do
-            if item:IsA("Model") then
-                if checkAdvancedSearch(item, searchName, minWeight) then
-                    table.insert(foundItems, item)
-                end
-            end
-            scanWorkspaceAdvanced(item, searchName, minWeight)
+    -- Perform the scan
+    scanWorkspace(workspace)
+    
+    -- Create result items
+    for i, item in ipairs(foundItems) do
+        createResultItem(item, i)
+    end
+end
+
+function Scanner.advancedScan(searchName, minWeight, resultsFrame, createResultItem)
+    -- Clear existing results
+    for _, child in pairs(resultsFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
         end
     end
     
-    -- Perform the appropriate scan based on mode
-    if type(mode) == "table" and mode.advanced then
-        scanWorkspaceAdvanced(workspace, mode.searchName, mode.minWeight)
-    else
-        scanWorkspace(workspace)
+    local workspace = game:GetService("Workspace")
+    local foundItems = {}
+    
+    -- Function to check if a model matches advanced search criteria
+    local function checkAdvancedSearch(model)
+        if not model:IsA("Model") then return false end
+        if model.Name ~= searchName then return false end
+        
+        local weightValue = model:FindFirstChild("Weight")
+        if not weightValue or not weightValue:IsA("NumberValue") then return false end
+        
+        return weightValue.Value >= minWeight
     end
+    
+    -- Scan workspace for advanced search
+    local function scanWorkspaceAdvanced(parent)
+        for _, item in pairs(parent:GetChildren()) do
+            if item:IsA("Model") then
+                if checkAdvancedSearch(item) then
+                    table.insert(foundItems, item)
+                end
+            end
+            scanWorkspaceAdvanced(item)
+        end
+    end
+    
+    -- Perform the advanced scan
+    scanWorkspaceAdvanced(workspace)
     
     -- Create result items
     for i, item in ipairs(foundItems) do
